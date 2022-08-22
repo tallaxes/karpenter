@@ -36,14 +36,6 @@
 		}
 	},
 
-	// used by .devcontainer/copy-kube-config.sh
-	"remoteEnv": {
-		"SYNC_LOCALHOST_KUBECONFIG": "true"
-	},
-	"mounts": [
-		"source=${env:HOME}${env:USERPROFILE}/.kube,target=/usr/local/share/kube-localhost,type=bind"
-	],
-
 	"containerEnv": {
 		"KUBEBUILDER_ASSETS": "/home/vscode/.kubebuilder/bin",
 		"CLOUD_PROVIDER": "azure"	// Karpenter development
@@ -58,7 +50,6 @@
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
 	"features": {
-		"docker-from-docker": "latest",
 		"kubectl-helm-minikube": "latest",
 		"azure-cli": "latest"
 	}
