@@ -1,0 +1,27 @@
+# See here for image contents: https://github.com/microsoft/vscode-dev-containers/tree/v0.238.0/containers/go/.devcontainer/base.Dockerfile
+
+# [Choice] Go version (use -bullseye variants on local arm64/Apple Silicon): 1, 1.16, 1.17, 1-bullseye, 1.16-bullseye, 1.17-bullseye, 1-buster, 1.16-buster, 1.17-buster
+ARG VARIANT="1.18-bullseye"
+FROM mcr.microsoft.com/vscode/devcontainers/go:0-${VARIANT}
+
+# [Choice] Node.js version: none, lts/*, 16, 14, 12, 10
+ARG NODE_VERSION="none"
+RUN if [ "${NODE_VERSION}" != "none" ]; then su vscode -c "umask 0002 && . /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1"; fi
+
+# [Optional] Uncomment this section to install additional OS packages.
+# gettext for envsubst (used by hack/azure/genbootstrap.sh)
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends gettext
+
+RUN curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64 && \
+    sudo install skaffold /usr/local/bin/
+
+# [Optional] Uncomment the next lines to use go get to install anything else you need
+# USER vscode
+# RUN go get -x <your-dependency-or-tool>
+
+# [Optional] Uncomment this line to install global node packages.
+# RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
+
+COPY copy-kube-config.sh /usr/local/share/
+RUN echo "source /usr/local/share/copy-kube-config.sh" | tee -a /home/vscode/.bashrc >> /home/vscode/.zshrc
