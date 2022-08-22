@@ -22,6 +22,3 @@ RUN curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/sk
 
 # [Optional] Uncomment this line to install global node packages.
 # RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
-
-COPY copy-kube-config.sh /usr/local/share/
-RUN echo "source /usr/local/share/copy-kube-config.sh" | tee -a /home/vscode/.bashrc >> /home/vscode/.zshrc
