@@ -15,15 +15,70 @@ limitations under the License.
 package main
 
 import (
-	"context"
+	v1 "github.com/aws/karpenter-provider-aws/pkg/apis/v1"
+	"github.com/aws/karpenter-provider-aws/pkg/cloudprovider"
+	"github.com/aws/karpenter-provider-aws/pkg/controllers"
+	"github.com/aws/karpenter-provider-aws/pkg/operator"
 
-	"github.com/aws/karpenter/pkg/cloudprovider"
-	"github.com/aws/karpenter/pkg/cloudprovider/aws"
-	"github.com/aws/karpenter/pkg/controllers"
+	"sigs.k8s.io/karpenter/pkg/cloudprovider/metrics"
+	corecontrollers "sigs.k8s.io/karpenter/pkg/controllers"
+	"sigs.k8s.io/karpenter/pkg/controllers/state"
+	coreoperator "sigs.k8s.io/karpenter/pkg/operator"
+	karpoptions "sigs.k8s.io/karpenter/pkg/operator/options"
 )
 
 func main() {
-	controllers.Initialize(func(ctx context.Context, options cloudprovider.Options) cloudprovider.CloudProvider {
-		return aws.NewCloudProvider(ctx, options)
-	})
+	ctx, op := operator.NewOperator(coreoperator.NewOperator())
+
+	awsCloudProvider := cloudprovider.New(
+		op.InstanceTypesProvider,
+		op.InstanceProvider,
+		op.EventRecorder,
+		op.GetClient(),
+		op.AMIProvider,
+		op.SecurityGroupProvider,
+		op.CapacityReservationProvider,
+	)
+	cloudProvider := metrics.Decorate(awsCloudProvider)
+	clusterState := state.NewCluster(op.Clock, op.GetClient(), cloudProvider)
+
+	if karpoptions.FromContext(ctx).FeatureGates.ReservedCapacity {
+		v1.CapacityReservationsEnabled = true
+	}
+
+	op.
+		WithControllers(ctx, corecontrollers.NewControllers(
+			ctx,
+			op.Manager,
+			op.Clock,
+			op.GetClient(),
+			op.EventRecorder,
+			cloudProvider,
+			clusterState,
+		)...).
+		WithControllers(ctx, controllers.NewControllers(
+			ctx,
+			op.Manager,
+			op.Config,
+			op.Clock,
+			op.EC2API,
+			op.GetClient(),
+			op.EventRecorder,
+			op.UnavailableOfferingsCache,
+			op.SSMCache,
+			op.ValidationCache,
+			cloudProvider,
+			op.SubnetProvider,
+			op.SecurityGroupProvider,
+			op.InstanceProfileProvider,
+			op.InstanceProvider,
+			op.PricingProvider,
+			op.AMIProvider,
+			op.LaunchTemplateProvider,
+			op.VersionProvider,
+			op.InstanceTypesProvider,
+			op.CapacityReservationProvider,
+			op.AMIResolver,
+		)...).
+		Start(ctx)
 }
